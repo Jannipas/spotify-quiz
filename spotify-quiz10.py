@@ -10,10 +10,6 @@ import json
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
 
-# WICHTIG: Session-Konfiguration für sichere Nutzer-Isolation
-# Generiere einen sicheren Secret Key falls keiner in Umgebungsvariablen vorhanden
-app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
-
 # KRITISCH: Diese Konfigurationen sind wichtig für die Session-Isolation
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Nur über HTTPS (wichtig für Produktion)
@@ -462,6 +458,7 @@ def previous_track():
 if __name__ == "__main__":
 
     app.run(host='0.0.0.0', debug=True)
+
 
 
 
