@@ -1,12 +1,10 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from flask import Flask, render_template_string, redirect, url_for, request, session, jsonify
-from flask_session import Session
 import re
 import os
 import time
 import json
-import redis
 
 # 1. FLASK-ANWENDUNG INITIALISIEREN
 app = Flask(__name__)
@@ -27,7 +25,6 @@ app.config.update(
 
 # Scope kann global bleiben
 scope = "user-read-currently-playing user-modify-playback-state"
-
 
 # --- EINSTELLUNGEN ZUM ANPASSEN ---
 highlight_color = "#C06EF3"
@@ -465,8 +462,6 @@ def previous_track():
 if __name__ == "__main__":
 
     app.run(host='0.0.0.0', debug=True)
-
-
 
 
 
