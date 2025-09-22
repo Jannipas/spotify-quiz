@@ -12,25 +12,22 @@ import redis
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
 
+# WICHTIG: Session-Konfiguration für sichere Nutzer-Isolation
+# Generiere einen sicheren Secret Key falls keiner in Umgebungsvariablen vorhanden
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 
-# --- NEU: SERVER-SIDE SESSIONS KONFIGURIEREN ---
-# Stellt sicher, dass die App die von Render bereitgestellte REDIS_URL verwendet.
-redis_url = os.environ.get('REDIS_URL')
-if not redis_url:
-    raise RuntimeError("REDIS_URL ist nicht in den Umgebungsvariablen gesetzt!")
-
-app.config["SESSION_TYPE"] = "redis"
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_USE_SIGNER"] = True
-app.config["SESSION_REDIS"] = redis.from_url(redis_url)
-
-# Initialisiert das Server-Side Session Management für die App
-server_session = Session(app)
-# --- ENDE DES NEUEN BLOCKS ---
-
+# KRITISCH: Diese Konfigurationen sind wichtig für die Session-Isolation
+app.config.update(
+    SESSION_COOKIE_SECURE=True,  # Nur über HTTPS (wichtig für Produktion)
+    SESSION_COOKIE_HTTPONLY=True,  # Verhindert JavaScript-Zugriff
+    SESSION_COOKIE_SAMESITE='Lax',  # CSRF-Schutz
+    PERMANENT_SESSION_LIFETIME=3600,  # Session läuft nach 1 Stunde ab
+    SESSION_COOKIE_NAME='spotify_quiz_session',  # Eindeutiger Cookie-Name
+)
 
 # Scope kann global bleiben
 scope = "user-read-currently-playing user-modify-playback-state"
+
 
 # --- EINSTELLUNGEN ZUM ANPASSEN ---
 highlight_color = "#C06EF3"
@@ -468,6 +465,7 @@ def previous_track():
 if __name__ == "__main__":
 
     app.run(host='0.0.0.0', debug=True)
+
 
 
 
