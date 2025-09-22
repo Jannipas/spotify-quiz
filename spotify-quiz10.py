@@ -10,15 +10,16 @@ import json
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
 
-# KRITISCH: Diese Konfigurationen sind wichtig für die Session-Isolation
-app.config.update(
-    SESSION_COOKIE_SECURE=True,  # Nur über HTTPS (wichtig für Produktion)
-    SESSION_COOKIE_HTTPONLY=True,  # Verhindert JavaScript-Zugriff
-    SESSION_COOKIE_SAMESITE='Lax',  # CSRF-Schutz
-    PERMANENT_SESSION_LIFETIME=3600,  # Session läuft nach 1 Stunde ab
-    SESSION_COOKIE_NAME='spotify_quiz_session',  # Eindeutiger Cookie-Name
-)
+class FlaskSessionCacheHandler(spotipy.cache_handler.CacheHandler):
+    def __init__(self, session_obj):
+        self.session = session_obj
 
+    def get_cached_token(self):
+        return self.session.get('spotify_token_info')
+
+    def save_token_to_cache(self, token_info):
+        self.session['spotify_token_info'] = token_info
+        
 # Scope kann global bleiben
 scope = "user-read-currently-playing user-modify-playback-state"
 
@@ -49,7 +50,7 @@ def create_spotify_oauth():
         client_secret=os.environ.get('CLIENT_SECRET'),
         redirect_uri=os.environ.get('REDIRECT_URI'),
         scope=scope,
-        cache_path=None
+        cache_handler=FlaskSessionCacheHandler(session)
     )
 
 def get_token():
@@ -458,6 +459,7 @@ def previous_track():
 if __name__ == "__main__":
 
     app.run(host='0.0.0.0', debug=True)
+
 
 
 
