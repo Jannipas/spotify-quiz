@@ -89,12 +89,37 @@ def callback():
     sp_oauth = create_spotify_oauth()
     code = request.args.get('code')
     token_info = sp_oauth.get_access_token(code)
+    
+    
+    # --- DEBUG-SPION 1 ---
+    print("--- TOKEN WIRD IN CALLBACK GESPEICHERT ---")
+    if token_info:
+        print(f"Access Token endet auf: ...{token_info['access_token'][-6:]}")
+        print(f"Refresh Token endet auf: ...{token_info['refresh_token'][-6:]}")
+    print("---------------------------------------")
+    # --- ENDE SPION 1 ---
+
+    
     session[TOKEN_INFO_KEY] = token_info
     return redirect(url_for('home'))
 
 
 @app.route("/")
 def home():
+
+    
+    # --- DEBUG-SPION 2 ---
+    token_in_session = session.get(TOKEN_INFO_KEY)
+    print("\n--- TOKEN WIRD IN HOME GELESEN ---")
+    if token_in_session:
+        print(f"Access Token endet auf: ...{token_in_session['access_token'][-6:]}")
+        print(f"Refresh Token endet auf: ...{token_in_session['refresh_token'][-6:]}")
+    else:
+        print("Kein Token in der Session gefunden.")
+    print("--------------------------------\n")
+    # --- ENDE SPION 2 ---
+
+    
     sp = get_spotify_client()
     if not sp:
         # Login-Seite mit angepasstem Stil für bessere mobile Darstellung
@@ -424,5 +449,6 @@ def previous_track():
 if __name__ == "__main__":
 
     app.run(host='0.0.0.0', debug=True)
+
 
 
