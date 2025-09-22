@@ -13,7 +13,7 @@ app.secret_key = os.environ.get('SECRET_KEY')
 # Spotify API Zugangsdaten
 clientID = os.environ.get('CLIENT_ID')
 clientSecret = os.environ.get('CLIENT_SECRET')
-redirectURI = "http://127.0.0.1:5000/callback"
+redirectURI = "https://spotify-quiz-34z3.onrender.com"
 scope = "user-read-currently-playing user-modify-playback-state"
 
 # --- EINSTELLUNGEN ZUM ANPASSEN (unverändert) ---
@@ -397,4 +397,5 @@ def previous_track():
 
 
 if __name__ == "__main__":
+
     app.run(host='0.0.0.0', debug=True)
