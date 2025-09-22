@@ -24,8 +24,8 @@ class FlaskSessionCacheHandler(spotipy.cache_handler.CacheHandler):
 scope = "user-read-currently-playing user-modify-playback-state"
 
 # --- EINSTELLUNGEN ZUM ANPASSEN ---
-highlight_color = "#C06EF3"
-button_hover_color = "#983BD2"
+highlight_color = os.environ.get('highlight_color')
+button_hover_color = os.environ.get('button_hover_color')
 wave_animation_speed = 50
 polling_interval_seconds = 3
 arrow_size = "60px"
@@ -467,6 +467,7 @@ def previous_track():
 if __name__ == "__main__":
 
     app.run(host='0.0.0.0', debug=True)
+
 
 
 
