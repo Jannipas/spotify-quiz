@@ -10,27 +10,10 @@ import json
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
 
-# Spotify API Zugangsdaten
-clientID = os.environ.get('CLIENT_ID')
-clientSecret = os.environ.get('CLIENT_SECRET')
-redirectURI = os.environ.get('REDIRECT_URI')
+# Scope kann global bleiben
 scope = "user-read-currently-playing user-modify-playback-state"
 
-
-
-# =========================================================
-# NEUER DEBUG-CODE ZUM TESTEN
-print("--- LADEN DER UMGEBUNGSVARIABLEN ---")
-print(f"CLIENT_ID geladen: {clientID is not None}")
-print(f"CLIENT_SECRET geladen: {clientSecret is not None}")
-print(f"SECRET_KEY geladen: {app.secret_key is not None}")
-print(f"REDIRECT_URI Wert: '{redirectURI}'") # Diese Zeile ist am wichtigsten
-print("--------------------------------------")
-# =========================================================
-
-
-
-# --- EINSTELLUNGEN ZUM ANPASSEN (unverändert) ---
+# --- EINSTELLUNGEN ZUM ANPASSEN ---
 highlight_color = "#C06EF3"
 button_hover_color = "#983BD2"
 wave_animation_speed = 50
@@ -51,25 +34,23 @@ TOKEN_INFO_KEY = 'spotify_token_info'
 ### 🧠 HELFER-FUNKTIONEN FÜR DIE AUTHENTIFIZIERUNG ###
 
 def create_spotify_oauth():
-    """Erstellt eine SpotifyOAuth-Instanz."""
+    """Erstellt eine SpotifyOAuth-Instanz und liest die Konfiguration aus den Umgebungsvariablen."""
     return SpotifyOAuth(
-        client_id=clientID,
-        client_secret=clientSecret,
-        redirect_uri=redirectURI,
+        client_id=os.environ.get('CLIENT_ID'),
+        client_secret=os.environ.get('CLIENT_SECRET'),
+        redirect_uri=os.environ.get('REDIRECT_URI'),
         scope=scope
     )
 
 def get_token():
-    """Holt das Token aus der Session, falls vorhanden."""
+    """Holt das Token aus der Session, falls vorhanden, und erneuert es bei Bedarf."""
     token_info = session.get(TOKEN_INFO_KEY, None)
     if not token_info:
         return None
 
-    # Prüfen, ob das Token abgelaufen ist
     now = int(time.time())
     is_expired = token_info['expires_at'] - now < 60
     if is_expired:
-        # Token erneuern
         sp_oauth = create_spotify_oauth()
         token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
         session[TOKEN_INFO_KEY] = token_info
@@ -80,12 +61,11 @@ def get_spotify_client():
     """Erstellt einen Spotipy-Client, wenn der Nutzer angemeldet ist."""
     token_info = get_token()
     if not token_info:
-        # Wenn kein Token da ist, kann kein Client erstellt werden
         return None
     return spotipy.Spotify(auth=token_info['access_token'])
 
 
-### 🚀 NEUE UND ANGEPASSTE ROUTEN ###
+### 🚀 ROUTEN ###
 
 @app.route("/login")
 def login():
@@ -116,22 +96,57 @@ def callback():
 def home():
     sp = get_spotify_client()
     if not sp:
-        # Wenn der Nutzer nicht angemeldet ist, zeige eine Login-Seite
+        # Login-Seite mit angepasstem Stil für bessere mobile Darstellung
         login_html = f"""
         <!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Login</title>
         <style>
-            body {{ font-family: -apple-system, sans-serif; background-color: #121212; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; text-align: center; }}
-            .container {{ background-color: #1a1a1a; padding: 3rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }}
-            h1 {{ margin-bottom: 2rem; }}
-            .button {{ padding: 12px 24px; background-color: {highlight_color}; color: white; text-decoration: none; border-radius: 50px; font-weight: bold; transition: background-color 0.3s; }}
-            .button:hover {{ background-color: {button_hover_color}; }}
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background-color: #121212;
+                color: #B3B3B3;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                min-height: 100vh;
+                margin: 0;
+                text-align: center;
+                padding-top: 5vh;
+                padding-bottom: 5vh;
+            }}
+            .container {{
+                width: calc(100% - 2rem);
+                max-width: 600px;
+                padding: 3rem;
+                border-radius: 12px;
+                background-color: #1a1a1a;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            }}
+            h1 {{
+                color: #FFFFFF;
+                font-size: clamp(1.5rem, 6vw, 2.5rem);
+                margin-bottom: 2rem;
+            }}
+            .button {{
+                padding: 12px 24px;
+                background-color: {highlight_color};
+                color: white;
+                text-decoration: none;
+                border-radius: 50px;
+                font-weight: bold;
+                transition: background-color 0.3s, transform 0.3s;
+                display: inline-block;
+            }}
+            .button:hover {{
+                background-color: {button_hover_color};
+                transform: scale(1.05);
+            }}
         </style></head><body><div class="container">
             <h1>Spotify Song Quiz</h1>
             <a href="/login" class="button">Mit Spotify anmelden</a>
         </div></body></html>"""
         return render_template_string(login_html)
 
-    # Ab hier ist der Code fast identisch, da wir jetzt ein gültiges `sp`-Objekt haben
     try:
         is_player_mode = session.get('player_mode', False)
         
@@ -148,9 +163,6 @@ def home():
             session['quiz_state'] = quiz_state
             
         show_solution = is_player_mode or quiz_state.get('is_solved', False)
-        
-        # ... Der gesamte restliche Code für die HTML-Darstellung bleibt hier ...
-        # (Ich kürze ihn hier zur besseren Lesbarkeit, im echten Code bleibt er komplett)
         
         progress_ms = current_track.get('progress_ms', 0)
         duration_ms = current_track['item'].get('duration_ms', 0)
@@ -239,7 +251,6 @@ def home():
             </div>
             """
         
-        # Der riesige HTML-String bleibt hier unverändert
         html_content = f"""
         <!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Spotify Song Quiz</title>
         <style>
@@ -292,11 +303,10 @@ def home():
             <h1>{display_title}</h1><h2>{display_artist}</h2>{year_question_html}{info_section_html}
             <a href="{button_link}" class="button">{button_text}</a>
             <div class="player-mode-toggle"><label for="playerMode" class="toggle-label">Player-Modus</label><label class="switch"><input type="checkbox" id="playerMode" name="playerMode" {player_mode_checked}><span class="slider"></span></label></div>
-            <a href="/logout" style="font-size:0.8rem; color:#888;">Logout</a>
+            <a href="/logout" style="font-size: 0.8rem; color: #888;">Logout</a>
         </div>
         
         <script>
-            // Dein Javascript bleibt hier komplett unverändert
             document.addEventListener('DOMContentLoaded', function() {{
                 const progressTrack = document.getElementById('progressTrack'); const progressFill = document.getElementById('progressFill'); const interactiveArea = document.querySelector('.progress-interactive-area'); const svgWidth = 300; const svgHeight = 14; const midHeight = svgHeight / 2; const amplitude = 6; const frequency = 0.05; const segments = 150; const waveSpeed = {wave_animation_speed};
                 let initialTrackId = '{current_track_id}'; const pollingInterval = {polling_interval_seconds} * 1000;
@@ -323,7 +333,7 @@ def home():
         session.pop('quiz_state', None)
         session.pop('player_mode', None)
         error_html = f"""<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Fehler</title><style>body{{font-family:-apple-system,sans-serif;background-color:#121212;color:#b3b3b3;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:1rem}}.container{{width:calc(100% - 2rem);max-width:600px;padding:2.5rem;border-radius:12px;background-color:#1a1a1a;box-shadow:0 4px 15px rgba(0,0,0,0.5)}}h1{{color:#fff;margin-bottom:1rem}}p{{margin:1rem 0;line-height:1.6}}.button{{padding:12px 24px;background-color:{highlight_color};color:#fff;text-decoration:none;border-radius:50px;font-weight:700;margin-top:20px;display:inline-block;transition:background-color .3s,transform .3s ease}}.button:hover{{background-color:{button_hover_color};transform:scale(1.05)}}.error-details{{margin-top:2rem;font-size:.8rem;color:#666}}</style></head><body><div class="container"><h1>Fehler oder kein Song aktiv</h1><p>Möglicherweise wird gerade ein lokaler Song abgespielt, oder es ist kein Titel aktiv. Bitte stelle sicher, dass ein Song von Spotify wiedergegeben wird.</p><a href="/" class="button">Aktualisieren / Neu anmelden</a><p class="error-details"><small>Details: {e}</small></p></div></body></html>"""
-        return error_html
+        return render_template_string(error_html)
 
 
 # Die restlichen Routen müssen jetzt auch den Spotify-Client über die Helfer-Funktion holen
@@ -413,5 +423,3 @@ def previous_track():
 if __name__ == "__main__":
 
     app.run(host='0.0.0.0', debug=True)
-
-
