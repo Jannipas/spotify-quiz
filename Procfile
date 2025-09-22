@@ -1,1 +1,1 @@
-web: gunicorn spotify-quiz10.0:app
+web: gunicorn spotify-quiz10:app
