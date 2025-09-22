@@ -40,6 +40,7 @@ def create_spotify_oauth():
         client_secret=os.environ.get('CLIENT_SECRET'),
         redirect_uri=os.environ.get('REDIRECT_URI'),
         scope=scope
+        cache_path=None
     )
 
 def get_token():
@@ -423,3 +424,4 @@ def previous_track():
 if __name__ == "__main__":
 
     app.run(host='0.0.0.0', debug=True)
+
