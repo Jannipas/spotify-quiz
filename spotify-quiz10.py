@@ -251,6 +251,9 @@ def home():
             for pattern in terms_to_remove: 
                 cleaned_track_name = re.sub(pattern, "", cleaned_track_name, flags=re.IGNORECASE).strip()
             
+            # NEU: Wir holen uns eine Liste der Original-Künstlernamen
+            original_artist_names = [artist["name"].lower() for artist in current_track["item"]["artists"]]
+            
             results = sp.search(q=f"track:{cleaned_track_name} artist:{artists_string}", type="track", limit=50)
             for result in results['tracks']['items']:
                 try:
@@ -260,10 +263,15 @@ def home():
                         cleaned_result_track_name = re.sub(pattern, "", cleaned_result_track_name, flags=re.IGNORECASE).strip()
 
                     if cleaned_track_name.lower() == cleaned_result_track_name.lower():
-                        result_year = int(result['album']['release_date'].split('-')[0])
-                        if result_year < original_release_year:
-                            original_release_year = result_year
-                            original_album_name = result['album']['name']
+                        # NEU: Wir holen uns auch die Künstlernamen des Suchergebnisses
+                        result_artist_names = [artist["name"].lower() for artist in result["artists"]]
+
+                        # NEU: Wir prüfen, ob mindestens einer der Original-Künstler im Ergebnis vorkommt
+                        if any(artist_name in result_artist_names for artist_name in original_artist_names):
+                            result_year = int(result['album']['release_date'].split('-')[0])
+                            if result_year < original_release_year:
+                                original_release_year = result_year
+                                original_album_name = result['album']['name']
                 except (KeyError, ValueError): 
                     continue
 
@@ -459,6 +467,7 @@ def previous_track():
 if __name__ == "__main__":
 
     app.run(host='0.0.0.0', debug=True)
+
 
 
 
