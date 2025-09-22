@@ -1,14 +1,33 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from flask import Flask, render_template_string, redirect, url_for, request, session, jsonify
+from flask_session import Session
 import re
 import os
 import time
 import json
+import redis
 
 # 1. FLASK-ANWENDUNG INITIALISIEREN
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
+
+
+# --- NEU: SERVER-SIDE SESSIONS KONFIGURIEREN ---
+# Stellt sicher, dass die App die von Render bereitgestellte REDIS_URL verwendet.
+redis_url = os.environ.get('REDIS_URL')
+if not redis_url:
+    raise RuntimeError("REDIS_URL ist nicht in den Umgebungsvariablen gesetzt!")
+
+app.config["SESSION_TYPE"] = "redis"
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_USE_SIGNER"] = True
+app.config["SESSION_REDIS"] = redis.from_url(redis_url)
+
+# Initialisiert das Server-Side Session Management für die App
+server_session = Session(app)
+# --- ENDE DES NEUEN BLOCKS ---
+
 
 # Scope kann global bleiben
 scope = "user-read-currently-playing user-modify-playback-state"
@@ -449,6 +468,7 @@ def previous_track():
 if __name__ == "__main__":
 
     app.run(host='0.0.0.0', debug=True)
+
 
 
 
