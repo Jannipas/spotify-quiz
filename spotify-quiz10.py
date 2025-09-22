@@ -16,6 +16,20 @@ clientSecret = os.environ.get('CLIENT_SECRET')
 redirectURI = os.environ.get('REDIRECT_URI')
 scope = "user-read-currently-playing user-modify-playback-state"
 
+
+
+# =========================================================
+# NEUER DEBUG-CODE ZUM TESTEN
+print("--- LADEN DER UMGEBUNGSVARIABLEN ---")
+print(f"CLIENT_ID geladen: {clientID is not None}")
+print(f"CLIENT_SECRET geladen: {clientSecret is not None}")
+print(f"SECRET_KEY geladen: {app.secret_key is not None}")
+print(f"REDIRECT_URI Wert: '{redirectURI}'") # Diese Zeile ist am wichtigsten
+print("--------------------------------------")
+# =========================================================
+
+
+
 # --- EINSTELLUNGEN ZUM ANPASSEN (unverändert) ---
 highlight_color = "#C06EF3"
 button_hover_color = "#983BD2"
@@ -399,4 +413,5 @@ def previous_track():
 if __name__ == "__main__":
 
     app.run(host='0.0.0.0', debug=True)
+
 
