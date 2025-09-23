@@ -253,9 +253,17 @@ def home():
             original_album_name = album_name
             
             terms_to_remove = [
-                r"\s*-\s*\d{4}\s*Remaster.*", r"\s*-\s*Remastered\s*\d{4}",
-                r"\(Remastered\)", r"\[Remastered\]", r"\s*-\s*Live", r"\(Live\)", 
-                r"\(Edit\)", r"\s*-\s*Single Version"
+                r"\s*-\s*\d{4}\s*Remastered.*", r"\s*-\s*Remastered.*",
+                r"\s*-\s*\d{4}\s*Remaster.*", r"\s*-\s*Remaster.*",
+                r"\(Remastered\)", r"\[Remastered\]",
+                r"\(Remaster\)", r"\[Remaster\]",
+                r"\s+-\s*Live.*", r"\(Live\)", r"\[Live\]",
+                r"\s*-\s*Edit.*", r"\(Edit\)",
+                r"\s*-\s*Single.*",  r"\(Single Version\)",
+                r"\s*-\s*Mono.*", r"\(Mono Version\)",
+                r"\s*-\s*Stereo.*", r"\(Stereo Version\)",
+                r"\s*-\s*Original.*", r"\(Original Version\)", r"\(Original\)",
+                r"\s*-\s*Radio.*", r"\(Radio Version\)", r"\(Radio\)"
             ]
             
             cleaned_track_name = track_name_raw
@@ -285,7 +293,7 @@ def home():
             initial_year_html = ""
             original_info_html = ""
             prominent_year_html = f'<p class="prominent-year">{initial_release_year}</p>'
-            if original_release_year < initial_release_year or track_name_raw != cleaned_track_name:
+            if original_release_year < initial_release_year: #or track_name_raw != cleaned_track_name:
                 prominent_year_html = f'<p class="prominent-year">{original_release_year}</p>'
                 initial_year_html = f'<p><strong>Veröffentlichungsjahr:</strong> {initial_release_year}</p>'
                 original_info_html = f"""<div class="info-box"><h3>Originalversion</h3><p><strong>Original-Titel für Suche:</strong> {cleaned_track_name}</p><p><strong>Original-Album:</strong> {original_album_name}</p></div>"""
