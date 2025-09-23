@@ -23,10 +23,43 @@ class FlaskSessionCacheHandler(spotipy.cache_handler.CacheHandler):
 # Scope kann global bleiben
 scope = "user-read-currently-playing user-modify-playback-state"
 
-# --- EINSTELLUNGEN ZUM ANPASSEN ---
-highlight_color = os.environ.get('highlight_color')
-button_hover_color = os.environ.get('button_hover_color')
-wave_animation_speed = 50
+# --- FARBPALETTEN ---
+PALETTES = {
+    'default': {
+        'name': 'Lila (Standard)',
+        'highlight_color': '#C06EF3',
+        'button_hover_color': '#9F47D6',
+        'button_text_color': '#FFFFFF'
+    },
+    'spotify_green': {
+        'name': 'Spotify Grün',
+        'highlight_color': '#1DB954',
+        'button_hover_color': '#1AA34A',
+        'button_text_color': '#FFFFFF'
+    },
+    'ocean_blue': {
+        'name': 'Ozeanblau',
+        'highlight_color': '#2D8BBA',
+        'button_hover_color': '#246D92',
+        'button_text_color': '#FFFFFF'
+    },
+    'butter_yellow': {
+        'name': 'Buttergelb',
+        'highlight_color': '#f2d34c',
+        'button_hover_color': '#efc23b',
+        'button_text_color': '#1a1a1a'
+    },
+    'sunset_orange': {
+        'name': 'Sonnenuntergang',
+        'highlight_color': '#F56E28',
+        'button_hover_color': '#C45820',
+        'button_text_color': '#FFFFFF'
+    }
+}
+# --- ENDE DER FARBPALETTE ---
+
+# --- STATISCHE EINSTELLUNGEN ---
+wave_animation_speed = 60
 polling_interval_seconds = 3
 arrow_size = "60px"
 arrow_thickness = 4
@@ -36,7 +69,6 @@ arrow_hover_scale = 1.15
 button_hover_scale = 1.05
 progress_bar_hover_increase_px = 3
 # --- ENDE DER EINSTELLUNGEN ---
-
 
 # Konstante für den Session-Key
 TOKEN_INFO_KEY = 'spotify_token_info'
@@ -100,39 +132,19 @@ def callback():
     code = request.args.get('code')
     token_info = sp_oauth.get_access_token(code)
     
-    
-    # --- DEBUG-SPION 1 ---
-    print("--- TOKEN WIRD IN CALLBACK GESPEICHERT ---")
-    if token_info:
-        print(f"Access Token endet auf: ...{token_info['access_token'][-6:]}")
-        print(f"Refresh Token endet auf: ...{token_info['refresh_token'][-6:]}")
-    print("---------------------------------------")
-    # --- ENDE SPION 1 ---
-
-    
     session[TOKEN_INFO_KEY] = token_info
     return redirect(url_for('home'))
 
-
 @app.route("/")
 def home():
-
-    
-    # --- DEBUG-SPION 2 ---
-    token_in_session = session.get(TOKEN_INFO_KEY)
-    print("\n--- TOKEN WIRD IN HOME GELESEN ---")
-    if token_in_session:
-        print(f"Access Token endet auf: ...{token_in_session['access_token'][-6:]}")
-        print(f"Refresh Token endet auf: ...{token_in_session['refresh_token'][-6:]}")
-    else:
-        print("Kein Token in der Session gefunden.")
-    print("--------------------------------\n")
-    # --- ENDE SPION 2 ---
-
-    
     sp = get_spotify_client()
+    
+    # Wähle die Farbpalette basierend auf der Session aus
+    theme_name = session.get('theme', 'default')
+    colors = PALETTES.get(theme_name, PALETTES['default'])
+
     if not sp:
-        # Login-Seite mit angepasstem Stil für bessere mobile Darstellung
+        # Login-Seite
         login_html = f"""
         <!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Login</title>
         <style>
@@ -165,8 +177,8 @@ def home():
             }}
             .button {{
                 padding: 12px 24px;
-                background-color: {highlight_color};
-                color: white;
+                background-color: {colors['highlight_color']};
+                color: {colors['button_text_color']};
                 text-decoration: none;
                 border-radius: 50px;
                 font-weight: bold;
@@ -174,7 +186,7 @@ def home():
                 display: inline-block;
             }}
             .button:hover {{
-                background-color: {button_hover_color};
+                background-color: {colors['button_hover_color']};
                 transform: scale(1.05);
             }}
         </style></head><body><div class="container">
@@ -185,13 +197,11 @@ def home():
 
     try:
         is_player_mode = session.get('player_mode', False)
-        
         current_track = sp.currently_playing()
         if not current_track or not current_track.get('item'):
             raise ValueError("Kein abspielbarer Song gefunden.")
 
         current_track_id = current_track['item']['id']
-        
         quiz_state = session.get('quiz_state', {})
         
         if current_track_id != quiz_state.get('track_id'):
@@ -200,6 +210,7 @@ def home():
             
         show_solution = is_player_mode or quiz_state.get('is_solved', False)
         
+        # ... (Logik zur Song-Anzeige bleibt gleich) ...
         progress_ms = current_track.get('progress_ms', 0)
         duration_ms = current_track['item'].get('duration_ms', 0)
         is_playing = current_track.get('is_playing', False)
@@ -251,7 +262,6 @@ def home():
             for pattern in terms_to_remove: 
                 cleaned_track_name = re.sub(pattern, "", cleaned_track_name, flags=re.IGNORECASE).strip()
             
-            # NEU: Wir holen uns eine Liste der Original-Künstlernamen
             original_artist_names = [artist["name"].lower() for artist in current_track["item"]["artists"]]
             
             results = sp.search(q=f"track:{cleaned_track_name} artist:{artists_string}", type="track", limit=50)
@@ -263,10 +273,7 @@ def home():
                         cleaned_result_track_name = re.sub(pattern, "", cleaned_result_track_name, flags=re.IGNORECASE).strip()
 
                     if cleaned_track_name.lower() == cleaned_result_track_name.lower():
-                        # NEU: Wir holen uns auch die Künstlernamen des Suchergebnisses
                         result_artist_names = [artist["name"].lower() for artist in result["artists"]]
-
-                        # NEU: Wir prüfen, ob mindestens einer der Original-Künstler im Ergebnis vorkommt
                         if any(artist_name in result_artist_names for artist_name in original_artist_names):
                             result_year = int(result['album']['release_date'].split('-')[0])
                             if result_year < original_release_year:
@@ -295,6 +302,20 @@ def home():
             </div>
             """
         
+        # HTML-Block für den interaktiven Farbwähler erstellen
+        options_html = ""
+        for key, palette in PALETTES.items():
+            options_html += f'<a href="/set-theme/{key}" class="theme-dot" style="background-color: {palette["highlight_color"]};" title="{palette["name"]}"></a>'
+
+        theme_selector_html = f"""
+        <div class="theme-picker">
+            <div id="theme-picker-toggle" class="theme-dot main-dot" style="background-color: {colors['highlight_color']};" title="Farbe ändern"></div>
+            <div id="theme-options" class="theme-options-container">
+                {options_html}
+            </div>
+        </div>
+        """
+        
         html_content = f"""
         <!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Spotify Song Quiz</title>
         <style>
@@ -306,36 +327,83 @@ def home():
             .album-art-link:hover {{ transform: scale({album_art_hover_scale}); }}
             .album-art, .placeholder-quiz {{ width: 100%; max-width: 300px; height: auto; aspect-ratio: 1 / 1; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); }}
             .placeholder-quiz {{ display: flex; align-items: center; justify-content: center; background-color: #282828; }}
-            .quiz-icon {{ width: 60%; height: auto; stroke: {highlight_color}; transition: stroke 0.2s ease-in-out; }}
-            .album-art-link:hover .quiz-icon {{ stroke: {button_hover_color}; }}
-            .control-arrow svg {{ width: {arrow_size}; height: {arrow_size}; stroke: {highlight_color}; stroke-width: {arrow_thickness}; transition: transform 0.3s ease, stroke 0.3s ease; }}
-            .control-arrow:hover svg {{ stroke: {button_hover_color}; transform: scale({arrow_hover_scale}); }}
+            .quiz-icon {{ width: 60%; height: auto; stroke: {colors['highlight_color']}; transition: stroke 0.2s ease-in-out; }}
+            .album-art-link:hover .quiz-icon {{ stroke: {colors['button_hover_color']}; }}
+            .control-arrow svg {{ width: {arrow_size}; height: {arrow_size}; stroke: {colors['highlight_color']}; stroke-width: {arrow_thickness}; transition: transform 0.3s ease, stroke 0.3s ease; }}
+            .control-arrow:hover svg {{ stroke: {colors['button_hover_color']}; transform: scale({arrow_hover_scale}); }}
             h1 {{ color: #FFFFFF; font-size: clamp(1.5rem, 6vw, 2.5rem); margin-bottom: 0.5rem; min-height: 1.2em; }}
             h2 {{ color: #B3B3B3; font-size: clamp(1rem, 3vw, 1.2rem); margin: 0.5rem 0 1.5rem; min-height: 1.2em; }}
-            .year-question {{ color: {highlight_color}; font-size: clamp(1.1rem, 4vw, 1.4rem); font-weight: bold; margin-top: 2rem; margin-bottom: 1.5rem;}}
+            .year-question {{ color: {colors['highlight_color']}; font-size: clamp(1.1rem, 4vw, 1.4rem); font-weight: bold; margin-top: 2rem; margin-bottom: 1.5rem;}}
             .info-section {{ width: 100%; text-align: center; }}
             .info-box strong {{ color: #FFFFFF; }}
             .info-box h3 {{ color: #FFFFFF; margin-top: 1.5rem; margin-bottom: 0.5rem;}}
             .info-divider {{ margin: 2rem 0; border: 0; border-top: 1px solid #333; }}
-            .button {{ padding: 12px 24px; background-color: {highlight_color}; color: white; text-decoration: none; border-radius: 50px; font-weight: bold; margin-top: 20px; display: inline-block; transition: background-color 0.3s, transform 0.3s ease; }}
-            .button:hover {{ background-color: {button_hover_color}; transform: scale({button_hover_scale}); }}
-            .prominent-year {{ font-size: clamp(3rem, 12vw, 4rem); font-weight: bold; color: {highlight_color}; margin: 1rem 0; }}
+            .button {{ padding: 12px 24px; background-color: {colors['highlight_color']}; color: {colors['button_text_color']}; text-decoration: none; border-radius: 50px; font-weight: bold; margin-top: 20px; display: inline-block; transition: background-color 0.3s, transform 0.3s ease; }}
+            .button:hover {{ background-color: {colors['button_hover_color']}; transform: scale({button_hover_scale}); }}
+            .prominent-year {{ font-size: clamp(3rem, 12vw, 4rem); font-weight: bold; color: {colors['highlight_color']}; margin: 1rem 0; }}
             .progress-svg-container {{ width: 80%; max-width: 350px; margin: 20px auto 0; }}
             .progress-interactive-area {{ width: 80%; margin: 0 auto; height: 14px; cursor: pointer; }}
             .progress-interactive-area svg {{ width: 100%; height: 100%; overflow: visible; }}
             #progressTrack, #progressFill {{ fill: none; stroke-width: {progress_bar_thickness}; stroke-linecap: round; stroke-linejoin: round; transition: stroke-width 0.2s ease, stroke 0.2s ease; }}
             #progressTrack {{ stroke: #444; }}
-            #progressFill {{ stroke: {highlight_color}; }}
+            #progressFill {{ stroke: {colors['highlight_color']}; }}
             .progress-interactive-area:hover #progressFill, .progress-interactive-area:hover #progressTrack {{ stroke-width: {progress_bar_thickness + progress_bar_hover_increase_px}; }}
-            .progress-interactive-area:hover #progressFill {{ stroke: {button_hover_color}; }}
-            .player-mode-toggle {{ margin-top: 30px; margin-bottom: 35px; display: flex; flex-direction: column; align-items: center; gap: 10px; }}
+            .progress-interactive-area:hover #progressFill {{ stroke: {colors['button_hover_color']}; }}
+            .player-mode-toggle {{ margin-top: 30px; margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; }}
             .toggle-label {{ font-size: 0.9rem; color: #B3B3B3; }}
             .switch {{ position: relative; display: inline-block; width: 50px; height: 28px; }}
             .switch input {{ opacity: 0; width: 0; height: 0; }}
             .slider {{ position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 28px; }}
             .slider:before {{ position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }}
-            input:checked + .slider {{ background-color: {highlight_color}; }}
+            input:checked + .slider {{ background-color: {colors['highlight_color']}; }}
             input:checked + .slider:before {{ transform: translateX(22px); }}
+            
+            /* --- CSS für den interaktiven Farbwähler --- */
+            .theme-picker {{
+                position: relative;
+                margin-top: 25px;
+                margin-bottom: 20px;
+                display: flex;
+                justify-content: center;
+            }}
+            .theme-options-container {{
+                position: absolute;
+                bottom: 130%;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                gap: 12px;
+                padding: 10px;
+                background-color: #282828;
+                border-radius: 50px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+                opacity: 0;
+                visibility: hidden;
+                transform: translate(-50%, 10px);
+                transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+            }}
+            .theme-options-container.active {{
+                opacity: 1;
+                visibility: visible;
+                transform: translate(-50%, 0);
+            }}
+            .theme-dot {{
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                border: 2px solid #555;
+                transition: transform 0.2s;
+                display: block;
+                cursor: pointer;
+            }}
+            .theme-dot:hover {{
+                transform: scale(1.2);
+            }}
+            .main-dot {{
+                 width: 30px;
+                 height: 30px;
+                 border-color: #888;
+            }}
         </style>
         </head><body><div class="container">
             <div class="album-art-container">
@@ -347,7 +415,8 @@ def home():
             <h1>{display_title}</h1><h2>{display_artist}</h2>{year_question_html}{info_section_html}
             <a href="{button_link}" class="button">{button_text}</a>
             <div class="player-mode-toggle"><label for="playerMode" class="toggle-label">Player-Modus</label><label class="switch"><input type="checkbox" id="playerMode" name="playerMode" {player_mode_checked}><span class="slider"></span></label></div>
-            <a href="/logout" style="font-size: 0.8rem; color: #888;">Logout</a>
+            {theme_selector_html}
+            <a href="/logout" style="font-size: 0.8rem; color: #888; margin-top: 10px; display:inline-block;">Logout</a>
         </div>
         
         <script>
@@ -367,16 +436,32 @@ def home():
                 setInterval(function() {{ fetch('/check-song').then(response => response.ok ? response.json() : Promise.reject('Network response was not ok')).then(data => {{ if (data && data.track_id !== initialTrackId) {{ window.location.reload(); }} }}).catch(error => console.error('Error during polling:', error)); }}, pollingInterval);
                 const playerModeToggle = document.getElementById('playerMode');
                 if (playerModeToggle) {{ playerModeToggle.addEventListener('change', function() {{ const isEnabled = this.checked; fetch('/toggle-player-mode', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify({{ playerMode: isEnabled }}) }}).then(response => response.ok ? response.json() : Promise.reject('Failed to toggle mode')).then(data => {{ if (data.success) {{ window.location.reload(); }} }}).catch(error => console.error('Error:', error)); }}); }}
+                
+                const themePickerToggle = document.getElementById('theme-picker-toggle');
+                const themeOptions = document.getElementById('theme-options');
+
+                if (themePickerToggle && themeOptions) {{
+                    themePickerToggle.addEventListener('click', function(event) {{
+                        event.stopPropagation(); 
+                        themeOptions.classList.toggle('active');
+                    }});
+
+                    document.addEventListener('click', function() {{
+                        if (themeOptions.classList.contains('active')) {{
+                            themeOptions.classList.remove('active');
+                        }}
+                    }});
+                }}
             }});
-        </script></body></html>"""
+        </script></body></html>
+        """
         
         return render_template_string(html_content)
 
     except Exception as e:
-        # Die gestaltete Fehlerseite bleibt unverändert
-        session.pop('quiz_state', None)
-        session.pop('player_mode', None)
-        error_html = f"""<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Fehler</title><style>body{{font-family:-apple-system,sans-serif;background-color:#121212;color:#b3b3b3;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:1rem}}.container{{width:calc(100% - 2rem);max-width:600px;padding:2.5rem;border-radius:12px;background-color:#1a1a1a;box-shadow:0 4px 15px rgba(0,0,0,0.5)}}h1{{color:#fff;margin-bottom:1rem}}p{{margin:1rem 0;line-height:1.6}}.button{{padding:12px 24px;background-color:{highlight_color};color:#fff;text-decoration:none;border-radius:50px;font-weight:700;margin-top:20px;display:inline-block;transition:background-color .3s,transform .3s ease}}.button:hover{{background-color:{button_hover_color};transform:scale(1.05)}}.error-details{{margin-top:2rem;font-size:.8rem;color:#666}}</style></head><body><div class="container"><h1>Fehler oder kein Song aktiv</h1><p>Möglicherweise wird gerade ein lokaler Song abgespielt, oder es ist kein Titel aktiv. Bitte stelle sicher, dass ein Song von Spotify wiedergegeben wird.</p><a href="/" class="button">Aktualisieren / Neu anmelden</a><p class="error-details"><small>Details: {e}</small></p></div></body></html>"""
+        theme_name = session.get('theme', 'default')
+        colors = PALETTES.get(theme_name, PALETTES['default'])
+        error_html = f"""<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Fehler</title><style>body{{font-family:-apple-system,sans-serif;background-color:#121212;color:#b3b3b3;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:1rem}}.container{{width:calc(100% - 2rem);max-width:600px;padding:2.5rem;border-radius:12px;background-color:#1a1a1a;box-shadow:0 4px 15px rgba(0,0,0,0.5)}}h1{{color:#fff;margin-bottom:1rem}}p{{margin:1rem 0;line-height:1.6}}.button{{padding:12px 24px;background-color:{colors['highlight_color']};color:#fff;text-decoration:none;border-radius:50px;font-weight:700;margin-top:20px;display:inline-block;transition:background-color .3s,transform .3s ease}}.button:hover{{background-color:{colors['button_hover_color']};transform:scale(1.05)}}.error-details{{margin-top:2rem;font-size:.8rem;color:#666}}</style></head><body><div class="container"><h1>Fehler oder kein Song aktiv</h1><p>Möglicherweise wird gerade ein lokaler Song abgespielt, oder es ist kein Titel aktiv. Bitte stelle sicher, dass ein Song von Spotify wiedergegeben wird.</p><a href="/" class="button">Aktualisieren / Neu anmelden</a><p class="error-details"><small>Details: {e}</small></p></div></body></html>"""
         return render_template_string(error_html)
 
 
@@ -463,14 +548,13 @@ def previous_track():
         pass
     return redirect(url_for('home'))
 
+@app.route("/set-theme/<theme_name>")
+def set_theme(theme_name):
+    """Speichert die vom Nutzer gewählte Farbpalette in der Session."""
+    if theme_name in PALETTES:
+        session['theme'] = theme_name
+    return redirect(url_for('home'))
+
 
 if __name__ == "__main__":
-
     app.run(host='0.0.0.0', debug=True)
-
-
-
-
-
-
-
