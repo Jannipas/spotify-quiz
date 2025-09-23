@@ -317,10 +317,17 @@ def home():
         """
         
         html_content = f"""
-        <!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Spotify Song Quiz</title>
+        <!DOCTYPE html>
+        <html lang="de">
+        <head>
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+        <title>Spotify Song Quiz</title>
         <style>
             * {{ box-sizing: border-box; }}
-            body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #121212; color: #B3B3B3; display: flex; flex-direction: column; align-items: center;justify-content: flex-start;min-height: 100vh; margin: 0; text-align: center;padding-top: 5vh;padding-bottom: 5vh;}}
+            body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #121212; color: #B3B3B3; display: flex; flex-direction: column; align-items: center;justify-content: flex-start;min-height: 100vh; margin: 0; text-align: center;padding-top: 5vh;padding-bottom: 5vh;}}
             .container {{ width: calc(100% - 2rem); max-width: 600px; padding: 2rem; border-radius: 12px; background-color: #1a1a1a; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); }}
             .album-art-container {{ display: flex; align-items: center; justify-content: center; gap: 20px; width: 100%; max-width: 450px; margin: 0 auto 1.5rem; }}
             .album-art-link {{ flex: 1 1 0; min-width: 0; display: flex; justify-content: center; transition: transform 0.3s ease; }}
@@ -405,7 +412,9 @@ def home():
                  border-color: #888;
             }}
         </style>
-        </head><body><div class="container">
+        </head>
+        <body>
+        <div class="container">
             <div class="album-art-container">
                 <a href="/previous" class="control-arrow"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></a>
                 <a href="/play_pause" class="album-art-link">{image_html}</a>
@@ -453,7 +462,9 @@ def home():
                     }});
                 }}
             }});
-        </script></body></html>
+        </script>
+        </body>
+        </html>
         """
         
         return render_template_string(html_content)
@@ -461,7 +472,7 @@ def home():
     except Exception as e:
         theme_name = session.get('theme', 'default')
         colors = PALETTES.get(theme_name, PALETTES['default'])
-        error_html = f"""<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Fehler</title><style>body{{font-family:-apple-system,sans-serif;background-color:#121212;color:#b3b3b3;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:1rem}}.container{{width:calc(100% - 2rem);max-width:600px;padding:2.5rem;border-radius:12px;background-color:#1a1a1a;box-shadow:0 4px 15px rgba(0,0,0,0.5)}}h1{{color:#fff;margin-bottom:1rem}}p{{margin:1rem 0;line-height:1.6}}.button{{padding:12px 24px;background-color:{colors['highlight_color']};color:#fff;text-decoration:none;border-radius:50px;font-weight:700;margin-top:20px;display:inline-block;transition:background-color .3s,transform .3s ease}}.button:hover{{background-color:{colors['button_hover_color']};transform:scale(1.05)}}.error-details{{margin-top:2rem;font-size:.8rem;color:#666}}</style></head><body><div class="container"><h1>Fehler oder kein Song aktiv</h1><p>Möglicherweise wird gerade ein lokaler Song abgespielt, oder es ist kein Titel aktiv. Bitte stelle sicher, dass ein Song von Spotify wiedergegeben wird.</p><a href="/" class="button">Aktualisieren / Neu anmelden</a><p class="error-details"><small>Details: {e}</small></p></div></body></html>"""
+        error_html = f"""<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Fehler</title><style>body{{font-family:-apple-system,sans-serif;background-color:#121212;color:#b3b3b3;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:1rem}}.container{{width:calc(100% - 2rem);max-width:600px;padding:2.5rem;border-radius:12px;background-color:#1a1a1a;box-shadow:0 4px 15px rgba(0,0,0,0.5)}}h1{{color:#fff;margin-bottom:1rem}}p{{margin:1rem 0;line-height:1.6}}.button{{padding:12px 24px;background-color:{colors['highlight_color']};color: {colors['button_text_color']};text-decoration:none;border-radius:50px;font-weight:700;margin-top:20px;display:inline-block;transition:background-color .3s,transform .3s ease}}.button:hover{{background-color:{colors['button_hover_color']};transform:scale(1.05)}}.error-details{{margin-top:2rem;font-size:.8rem;color:#666}}</style></head><body><div class="container"><h1>Fehler oder kein Song aktiv</h1><p>Möglicherweise wird gerade ein lokaler Song abgespielt, oder es ist kein Titel aktiv. Bitte stelle sicher, dass ein Song von Spotify wiedergegeben wird.</p><a href="/" class="button">Aktualisieren / Neu anmelden</a><p class="error-details"><small>Details: {e}</small></p></div></body></html>"""
         return render_template_string(error_html)
 
 
